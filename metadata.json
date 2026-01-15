@@ -1,0 +1,5 @@
+{
+  "name": "Katje Smart Image Maker II",
+  "description": "A powerful React application for analyzing and generating images using Google's Gemini and Imagen models, featuring a resizable interface and comprehensive logging.",
+  "requestFramePermissions": []
+}
