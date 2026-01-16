@@ -505,8 +505,13 @@ class JobService {
         this.notify();
     }
 
+    // New: Public method to create a job (wraps createJobInternal)
+    public createJob(type: JobType, imageId: string, details: Partial<Job>) {
+        return this.createJobInternal(type, imageId, details);
+    }
+
     // INTERNAL entry point for action creators
-    public createJobInternal(type: JobType, imageId: string, details: Partial<Job>) {
+    private createJobInternal(type: JobType, imageId: string, details: Partial<Job>) {
         const job: Job = {
             id: generateUUID(),
             imageId,
@@ -632,6 +637,12 @@ class JobService {
         if (this.selectedItems.has(id)) { this.selectedItems.delete(id); } else { this.selectedItems.add(id); }
         this.notify();
     }
+    // New: Toggle lock status for a history item
+    public toggleHistoryItemLock(id: string) {
+        this.history = this.history.map(h => h.id === id ? { ...h, isLocked: !h.isLocked } : h);
+        this.notify();
+    }
+
     public toggleUseSelected() { this.useSelected = !this.useSelected; this.notify(); }
     public toggleAutoRetry() { this.autoRetry = !this.autoRetry; this.notify(); }
     public toggleAutoAddToWorkspace() { this.autoAddToWorkspace = !this.autoAddToWorkspace; this.notify(); }

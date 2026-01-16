@@ -44,6 +44,18 @@ export const MedievalRenaissance = {
     ]
 };
 
+export const SaunasAndBathing = {
+    "Saunas": [
+        "Traditional Finnish Smoke Sauna", "Modern Infrared Sauna", "Nordic Spa Wood Cabin",
+        "Luxury Hotel Sauna (Glass Walls)", "Gym Locker Room Sauna", "Mountain Resort Sauna View"
+    ],
+    "Bathhouses & Onsens": [
+        "Japanese Outdoor Onsen (Hot Spring)", "Japanese Sento (Public Bath)", "Turkish Hamam (Marble Plinth)",
+        "Russian Banya (Birch Branches)", "Roman Thermae (Great Hall)", "Victorian Bathhouse (Cast Iron & Tile)",
+        "Moroccan Riad Bath (Mosaic)", "Eucalyptus Steam Room", "Luxury Mud Bath Spa"
+    ]
+};
+
 export const Century18_19 = {
     "Victorian": [
         "Victorian Parlor", "Sherlock Holmes Study", "Gothic Mansion Hall", "Steam Train Carriage", 

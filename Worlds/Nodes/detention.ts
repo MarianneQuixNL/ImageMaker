@@ -15,6 +15,23 @@ export const JailsAndPrisons = {
     ]
 };
 
+export const SlaveMarkersAndConfinement = {
+    "Public Display": [
+        "Town Square Stocks", "Village Pillory", "Raised Auction Block (Historical)",
+        "Iron Cage (Hanging)", "Chains on Public Wall", "Slave Market (Ancient/Fantasy)",
+        "Public Whipping Post"
+    ],
+    "Private Confinement": [
+        "Dungeon Wall with Shackles", "Slave Pit (Stone Floor)", "Kennel/Human-Sized Cage",
+        "Underground Cell (Dark)", "Slave Quarters (Spartan)", "Iron Maiden (Interior)",
+        "Stretched on a Rack"
+    ],
+    "Fantasy & Exotic": [
+        "Magic Seal Cage", "Crystal Prism Prison", "Demon-Slaying Bindings",
+        "Ritual Altar with Chains", "Floating Energy Cage", "Spider-Web Cocoon"
+    ]
+};
+
 export const DungeonsAndTorture = {
     "Medieval Dungeon": [
         "Stone Dungeon Cell", "Torture Chamber (Rack/Wheel)", "Chains on Wall", "Oubliette (Pit)",

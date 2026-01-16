@@ -85,7 +85,7 @@ const generateCombinations = (data: TraitSelections) => {
     const keys = Object.keys(data) as Array<keyof TraitSelections>;
     const entries = keys.map(key => ({ key, values: data[key].length > 0 ? data[key] : ["As-is"] }));
     return entries.reduce((acc, curr) => {
-        const newAcc: Array<Record<keyof TraitSelections, string>> = [];
+        const newAcc: Array<Record<keyof TraraitSelections, string>> = [];
         if (acc.length === 0) return curr.values.map(v => ({ [curr.key]: v } as any));
         acc.forEach(existing => {
             curr.values.forEach(v => {
@@ -109,14 +109,14 @@ export const AppModals: React.FC<AppModalsProps> = ({
     }>({ isOpen: false, prompt: "", onConfirm: () => {} });
 
     const handleEditPrompt = (jobDef: Partial<Job>, imageId?: string) => {
-        if (!jobDef.prompt) return;
+        if (!jobDef.prompt || !jobDef.type) return; // Ensure type is defined
         setEditPromptState({
             isOpen: true,
             prompt: jobDef.prompt,
             onConfirm: (newPrompt) => {
                 const updatedJob = { ...jobDef, prompt: newPrompt };
                 // FIX: Use the public createJob method instead of a private/internal one.
-                jobService.createJob(updatedJob, imageId);
+                jobService.createJob(updatedJob.type!, imageId!, updatedJob);
             }
         });
     };

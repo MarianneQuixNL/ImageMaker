@@ -13,8 +13,27 @@ import * as Dreamscapes from './Nodes/dreamscapes';
 import * as Detention from './Nodes/detention';
 import * as Intimate from './Nodes/intimate';
 import * as Geological from './Nodes/geological';
+import * as Species from './Nodes/speciesWorlds';
 
 export const WORLD_TREE = {
+    "Offices & Workspaces": Urban.ModernWorld["Offices & Workspaces"],
+    "Saunas & Bathing Houses": Historic.SaunasAndBathing,
+    "Confinement & Slave Markers": Detention.SlaveMarkersAndConfinement,
+    "Species Homelands": {
+        "Elven Realms": Species.ElfWorlds,
+        "Dwarven Strongholds": Species.DwarfWorlds,
+        "Orc & Goblin Territories": Species.OrcGoblinWorlds,
+        "Smallfolk Settlements": Species.SmallfolkWorlds,
+        "Giant Lands": Species.GiantWorlds,
+        "Planar & Celestial": Species.PlanarWorlds,
+        "Feywild & Magic": Species.FeyWorlds,
+        "Beast & Hybrid Habitats": Species.BeastHybridWorlds,
+        "Aquatic Dominions": Species.AquaticWorlds,
+        "Insectoid Hives": Species.InsectoidWorlds,
+        "Undead & Cursed Lands": Species.UndeadWorlds,
+        "Construct & Artificial": Species.ConstructWorlds,
+        "Alien Planets": Species.AlienWorlds
+    },
     "Geological Time & Events": {
         "Geological Periods": Geological.GeologicalPeriods,
         "Extinction Events": Geological.ExtinctionEvents

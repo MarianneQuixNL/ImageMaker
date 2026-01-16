@@ -1,4 +1,3 @@
-
 import { 
     Job, JobStatus, JobType, JobAttribute, HistoryItem, LogType, LogSource, 
     Transformation, Person, PartyMemberConfig 
@@ -151,57 +150,53 @@ class JobService {
     }
 
     private async processQueue() {
-        if (this.isQueuePaused || this.processingQueue) return;
+        if (this.isQueuePaused) return;
+        this.processingQueue = true;
 
-        try {
-            this.processingQueue = true;
-            const maxConcurrent = this.freeTierMode ? 1 : this.concurrencyLimit;
+        const activeCount = this.jobs.filter(j => j.status === JobStatus.RUNNING).length;
+        const maxConcurrent = this.freeTierMode ? 1 : this.concurrencyLimit;
 
-            // Fill available slots
-            while (true) {
-                const activeCount = this.jobs.filter(j => j.status === JobStatus.RUNNING).length;
-                if (activeCount >= maxConcurrent) break;
-
-                const nextJob = this.jobs
-                    .filter(j => j.status === JobStatus.WAITING)
-                    .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.createdAt.getTime() - b.createdAt.getTime())[0];
-
-                if (!nextJob) break;
-
-                // Dependency logic
-                if (nextJob.dependencies && nextJob.dependencies.length > 0) {
-                    const deps = this.jobs.filter(j => nextJob.dependencies?.includes(j.id));
-                    const anyFailed = deps.some(d => d.status === JobStatus.FAILED || d.status === JobStatus.CANCELLED || d.status === JobStatus.DEAD);
-                    const allDone = deps.every(d => d.status === JobStatus.FINISHED);
-
-                    if (anyFailed) {
-                        this.updateJob(nextJob.id, { status: JobStatus.DEAD, error: "Dependency failed" });
-                        continue; // Look for another job
-                    }
-                    if (!allDone) {
-                        // This job is blocked, and since jobs are sorted, we might be stuck.
-                        // But there might be non-dependent jobs further down the queue.
-                        // For simplicity, we break here to avoid complex re-sorting,
-                        // but you could also skip this job and continue the loop.
-                        break; 
-                    }
-                }
-
-                // Start Job
-                this.updateJob(nextJob.id, { status: JobStatus.RUNNING, startedAt: new Date() });
-                
-                // executeJob is async, but we don't await it here to allow concurrent starts
-                this.executeJob(nextJob).finally(() => {
-                    // Trigger queue again when a slot opens up
-                    const delay = this.freeTierMode ? 5000 : 100;
-                    setTimeout(() => this.triggerQueueProcessing(), delay);
-                });
-            }
-        } catch (e) {
-            console.error("Queue scheduler encountered an error", e);
-        } finally {
+        if (activeCount >= maxConcurrent) {
             this.processingQueue = false;
-            this.notify();
+            return;
+        }
+
+        const nextJob = this.jobs
+            .filter(j => j.status === JobStatus.WAITING)
+            .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.createdAt.getTime() - b.createdAt.getTime())[0];
+
+        if (nextJob) {
+            if (nextJob.dependencies && nextJob.dependencies.length > 0) {
+                const deps = this.jobs.filter(j => nextJob.dependencies?.includes(j.id));
+                const anyFailed = deps.some(d => d.status === JobStatus.FAILED || d.status === JobStatus.CANCELLED || d.status === JobStatus.DEAD);
+                const allDone = deps.every(d => d.status === JobStatus.FINISHED);
+
+                if (anyFailed) {
+                    this.updateJob(nextJob.id, { status: JobStatus.DEAD, error: "Dependency failed" });
+                    this.processQueue();
+                    return;
+                }
+                if (!allDone) {
+                    this.processingQueue = false;
+                    return;
+                }
+            }
+
+            this.updateJob(nextJob.id, { status: JobStatus.RUNNING, startedAt: new Date() });
+            
+            this.executeJob(nextJob).then(() => {
+                if (this.freeTierMode) {
+                    setTimeout(() => this.processQueue(), 5000); 
+                } else {
+                    this.processQueue();
+                }
+            });
+
+            if (activeCount + 1 < maxConcurrent) {
+                setTimeout(() => this.processQueue(), 100);
+            }
+        } else {
+            this.processingQueue = false;
         }
     }
 
@@ -252,11 +247,7 @@ class JobService {
 
             if (image) {
                 if (job.type === JobType.COUNT_PEOPLE && result.data?.people) {
-                    this.updateHistoryItem(image.id, { 
-                        peopleDetection: result.data,
-                        isBackground: result.data.count === 0,
-                        isTemplate: result.data.count === 4 || (result.data.count === 1 && result.data.people[0]?.description?.toLowerCase().includes('template'))
-                    });
+                    this.updateHistoryItem(image.id, { peopleDetection: result.data });
                 }
                 else if (job.type === JobType.DETECT_STYLE && typeof result.data === 'string') {
                     this.updateHistoryItem(image.id, { detectedStyle: result.data });
@@ -358,6 +349,7 @@ class JobService {
                         error: `Retrying with sanitized prompt: ${safePrompt.substring(0, 50)}...`,
                         metadata: { ...job.metadata, autoSanitizeOnRetry: true }
                     });
+                    this.processQueue();
                     return;
                 } catch (retryError) {
                     logger.log("Auto-sanitize failed", LogType.ERROR, String(retryError), LogSource.SYSTEM);
@@ -365,22 +357,8 @@ class JobService {
             }
 
             if (error.message.includes("429")) {
-                if (!this.freeTierMode) {
-                    logger.log("429 Too Many Requests detected. Switching to Free Tier Mode (Throttled) and retrying...", LogType.WARNING, undefined, LogSource.SYSTEM);
-                    this.freeTierMode = true;
-                    this.updateConfiguration({
-                        transformations: this.transformations,
-                        concurrencyLimit: this.concurrencyLimit,
-                        freeTierMode: true,
-                        aiSettings: this.aiSettings
-                    });
-                    
-                    setTimeout(() => {
-                        this.retryJob(job);
-                    }, 3000);
-                    return;
-                }
-
+                // If not in free tier mode, just pause the queue.
+                // If already in free tier mode, still pause but also log the message.
                 this.isQueuePaused = true;
                 logger.log("API Quota Exceeded (429). Queue Paused.", LogType.ERROR, "Please wait or switch API keys.", LogSource.SYSTEM);
                 this.notify();
@@ -505,25 +483,13 @@ class JobService {
     }
 
     public deleteHistoryItem(id: string) {
-        const item = this.history.find(h => h.id === id);
-        if (item?.isLocked) {
-            logger.log(`Deletion prevented: Item "${item.title}" is locked.`, LogType.WARNING, undefined, LogSource.SYSTEM);
-            return;
-        }
         this.history = this.history.filter(h => h.id !== id);
         const jobsToDelete = this.jobs.filter(j => j.imageId === id);
         jobsToDelete.forEach(j => { if (j.status !== JobStatus.RUNNING) this.deleteJob(j.id); });
         this.notify();
     }
 
-    public createJob(details: Partial<Job>, imageId?: string) {
-        if (!details.type) {
-            throw new Error("Job type is required to create a job.");
-        }
-        const finalImageId = imageId || details.imageId || generateUUID();
-        return this.createJobInternal(details.type, finalImageId, details);
-    }
-
+    // INTERNAL entry point for action creators
     public createJobInternal(type: JobType, imageId: string, details: Partial<Job>) {
         const job: Job = {
             id: generateUUID(),
@@ -551,11 +517,6 @@ class JobService {
     }
 
     public deleteJob(id: string) {
-        const job = this.jobs.find(j => j.id === id);
-        if (job?.imageId) {
-            const item = this.history.find(h => h.id === job.imageId);
-            if (item?.isLocked) return; 
-        }
         this.jobs = this.jobs.filter(j => j.id !== id);
         this.notify();
     }
@@ -571,6 +532,8 @@ class JobService {
 
     public promoteJob(job: Job) {
         if (job.result && typeof job.result === 'string') {
+            
+            // VALIDATION CHECK
             const isDataUri = job.result.startsWith('data:');
             const isBlob = job.result.startsWith('blob:');
             const isHttp = job.result.startsWith('http');
@@ -581,8 +544,6 @@ class JobService {
             }
 
             const isVideo = job.attribute === JobAttribute.VIDEO;
-            const isTemplate = job.type === JobType.GENERATE_CHARACTER_SHEET_TEMPLATE || job.type === JobType.GENERATE_TEMPLATE_PERSON;
-            
             let title = job.name || job.type;
             const parentImage = this.history.find(h => h.id === job.imageId);
             
@@ -603,9 +564,7 @@ class JobService {
                 origin: `Job: ${job.type}`,
                 timestamp: new Date(),
                 fileDetails: { size: 0, type: isVideo ? 'video/mp4' : 'image/png' },
-                jobIds: [],
-                isTemplate: isTemplate,
-                isBackground: false 
+                jobIds: []
             };
 
             if (isVideo) {
@@ -633,11 +592,6 @@ class JobService {
         this.jobs.filter(j => j.imageId === imageId && j.status === JobStatus.FAILED).forEach(j => this.retryJob(j));
     }
     public removeFailedJobsForImage(imageId: string) {
-        const item = this.history.find(h => h.id === imageId);
-        if (item?.isLocked) {
-            logger.log(`Action prevented: Cannot remove failed jobs for locked item "${item.title}".`, LogType.WARNING, undefined, LogSource.SYSTEM);
-            return;
-        }
         this.jobs = this.jobs.filter(j => !(j.imageId === imageId && j.status === JobStatus.FAILED));
         this.notify();
     }
@@ -655,20 +609,11 @@ class JobService {
         this.jobs.filter(j => j.status === JobStatus.FAILED).forEach(j => this.retryJob(j));
     }
     public deleteJobsByStatus(status: JobStatus) {
-        const lockedImageIds = new Set(this.history.filter(h => h.isLocked).map(h => h.id));
-        this.jobs = this.jobs.filter(j => 
-            j.status !== status || (j.imageId && lockedImageIds.has(j.imageId))
-        );
+        this.jobs = this.jobs.filter(j => j.status !== status);
         this.notify();
     }
     public toggleImageSelection(id: string) {
         if (this.selectedItems.has(id)) { this.selectedItems.delete(id); } else { this.selectedItems.add(id); }
-        this.notify();
-    }
-    public toggleHistoryItemLock(id: string) {
-        this.history = this.history.map(h => 
-            h.id === id ? { ...h, isLocked: !h.isLocked } : h
-        );
         this.notify();
     }
     public toggleUseSelected() { this.useSelected = !this.useSelected; this.notify(); }

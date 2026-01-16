@@ -24,6 +24,28 @@ export const ModernWorld = {
           "Solar Panel Field", "Tunnel Entrance", "Parking Garage", "Gas Station Night", "Radio Tower"
       ]
     },
+    "Offices & Workspaces": {
+        "Modern & Tech": [
+            "Silicon Valley Open Office", "Minimalist Glass Boardroom", "Creative Agency Loft",
+            "Home Office (Ultrawide Monitors)", "Co-working Space Lounge", "Data Center Server Room",
+            "Executive Corner Office (Skyline View)", "Reception Desk (Marble & LED)"
+        ],
+        "20th Century": [
+            "1950s Typing Pool (Rows of Typewriters)", "1960s Mad Men Style Office",
+            "1970s Wood-Paneled Law Office", "1980s Wall Street Trading Floor",
+            "1990s Cubicle Farm (Beige PCs)", "Retro Press Room (Newspaper)"
+        ],
+        "Historic & Classic": [
+            "Victorian Private Study (Oak & Leather)", "Gentleman's Library (Ladder & Shelves)",
+            "Renaissance Merchant Counting House", "Medieval Scriptorium (Parchment & Quills)",
+            "Ancient Egyptian Scribe Station", "18th Century Sea Captain's Cabin Office",
+            "Industrial Revolution Factory Clerk Desk"
+        ],
+        "Futuristic": [
+            "Starship Captain's Ready Room", "Cyberpunk Hacker's Den", "Holographic Command Center",
+            "Floating Desktop in Zero-G", "Virtual Reality Workspace Grid"
+        ]
+    },
     "Interiors": {
         "Living Rooms": [
             "Modern Living Room", "Cozy Fireplace Room", "Minimalist Apartment Lounge", "Man Cave",
@@ -41,7 +63,7 @@ export const ModernWorld = {
         "Bathrooms": [
             "Luxury Spa Bathroom", "Small Tiled Bathroom", "Public Restroom", "Grungy Gas Station Toilet",
             "Shower Stall (Glass Walls)", "Bathtub with Bubbles", "Locker Room Showers", "Sauna / Steam Room",
-            "Japanese Ofuro Tub", "Makeup Vanity Mirror", "Walk-in Rainforest Shower", "Modern Wet Room",
+            "Japanese Onsen Bath", "Makeup Vanity Mirror", "Walk-in Rainforest Shower", "Modern Wet Room",
             "Outdoor Villa Shower (Stone & Plants)"
         ],
         "Public Spaces": [
